@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:latest
+    environment:
+      MYSQL_ROOT_PASSWORD: fiapOn
+      MYSQL_DATABASE: dbfiapon
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+  hadoop:
+    image: bde2020/hadoop-python:latest
+    ports:
+      - "9870:9870"
+    volumes:
+      - hadoop_data:/hadoop/dfs
+
+  airflow:
+    image: apache/airflow:2.5.0
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: mysql+pymysql://root:fiapOn@mysql/dbfiapon
+      AIRFLOW__WEBSERVER__RBAC: "true"
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./dags:/usr/local/airflow/dags
+      - ./requirements.txt:/requirements.txt
+    depends_on:
+      - mysql
+    command: >
+      bash -c "pip install -r /requirements.txt &&
+               airflow db init &&
+               airflow scheduler & airflow webserver"
+
+volumes:
+  mysql_data:
+  hadoop_data:
